@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Manager</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--text:#1d2433;--muted:#6b7487;--border:#e3e7f0;--primary:#4f46e5;--danger:#dc2626;--side:#111827}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1420;--card:#171d2c;--text:#e8ecf5;--muted:#9aa4b8;--border:#262e42;--primary:#6366f1;--danger:#f87171;--side:#0a0e18}}
+*{box-sizing:border-box}
+body{margin:0;display:flex;min-height:100vh;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+aside{width:220px;background:var(--side);color:#cbd2e1;padding:20px 14px;display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+aside h1{font-size:18px;color:#fff;margin:0 8px 18px}
+.nav{background:none;border:0;color:inherit;text-align:left;padding:10px 12px;border-radius:8px;font-size:15px;cursor:pointer}
+.nav:hover{background:rgba(255,255,255,.08)}
+.nav.active{background:var(--primary);color:#fff}
+main{flex:1;padding:24px;min-width:0}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:12px}
+header h2{margin:0;font-size:22px}
+.btn{background:var(--primary);color:#fff;border:0;padding:9px 16px;border-radius:8px;font-size:14px;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:none;color:var(--text);border:1px solid var(--border)}
+.btn.danger{background:var(--danger)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.stat small{color:var(--muted);font-size:13px}
+.stat b{display:block;font-size:28px;margin-top:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card h3{margin:0 0 14px;font-size:16px}
+.bar{margin-bottom:12px;font-size:14px}
+.bar div{height:8px;border-radius:4px;background:var(--border);margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--primary);border-radius:4px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+.row:last-child{border:0}
+.av{width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-weight:600;font-size:13px;flex-shrink:0}
+.muted{color:var(--muted);font-size:13px}
+input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px}
+input:focus{outline:2px solid var(--primary);border-color:transparent}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--muted);font-weight:500;padding:10px 8px;border-bottom:1px solid var(--border)}
+td{padding:10px 8px;border-bottom:1px solid var(--border)}
+td.act{white-space:nowrap;text-align:right}
+.empty{text-align:center;color:var(--muted);padding:30px}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+dialog{border:1px solid var(--border);border-radius:14px;background:var(--card);color:var(--text);padding:22px;width:min(420px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog h3{margin:0 0 14px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.err{color:var(--danger);font-size:13px;margin-top:10px;min-height:16px}
+.btns{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+#toast{position:fixed;bottom:20px;right:20px;background:#16a34a;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.show{opacity:1}#toast.bad{background:var(--danger)}
+.hide{display:none}
+@media (max-width:720px){body{flex-direction:column}aside{width:100%;flex-direction:row;align-items:center;padding:10px;overflow-x:auto}aside h1{margin:0 10px 0 4px;font-size:16px}.two{grid-template-columns:1fr}main{padding:16px}}
+</style>
+</head>
+<body>
+<aside>
+  <h1>Student Manager</h1>
+  <button class="nav active" data-view="dash">Dashboard</button>
+  <button class="nav" data-view="list">Students</button>
+</aside>
+
+<main>
+  <header>
+    <h2 id="title">Dashboard</h2>
+    <button class="btn" id="addBtn">+ Add Student</button>
+  </header>
+
+  <section id="dash">
+    <div class="grid">
+      <div class="card stat"><small>Total students</small><b id="sTotal">0</b></div>
+      <div class="card stat"><small>Average age</small><b id="sAvg">0</b></div>
+      <div class="card stat"><small>Courses</small><b id="sCourses">0</b></div>
+      <div class="card stat"><small>New this week</small><b id="sNew">0</b></div>
+    </div>
+    <div class="two">
+      <div class="card"><h3>Students by course</h3><div id="bars"></div></div>
+      <div class="card"><h3>Recently added</h3><div id="recent"></div></div>
+    </div>
+  </section>
+
+  <section id="list" class="hide">
+    <div class="card">
+      <input id="search" type="search" placeholder="Search by name, email or course...">
+      <div class="wrap" style="margin-top:12px">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Course</th><th>Age</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <span class="muted" id="pageInfo"></span>
+        <span><button class="btn ghost sm" id="prev">Previous</button> <button class="btn ghost sm" id="next">Next</button></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <form id="form">
+    <h3 id="dlgTitle">Add Student</h3>
+    <label for="fName">Name</label><input id="fName" required minlength="2" maxlength="100">
+    <label for="fEmail">Email</label><input id="fEmail" type="email" required>
+    <label for="fCourse">Course</label><input id="fCourse" required minlength="2" maxlength="100">
+    <label for="fAge">Age</label><input id="fAge" type="number" required min="5" max="120">
+    <div class="err" id="formErr"></div>
+    <div class="btns"><button type="button" class="btn ghost" id="cancel">Cancel</button><button class="btn" id="save">Save</button></div>
+  </form>
+</dialog>
+
+<dialog id="delDlg">
+  <h3>Delete student?</h3>
+  <p id="delText" class="muted"></p>
+  <div class="btns"><button class="btn ghost" id="delCancel">Cancel</button><button class="btn danger" id="delOk">Delete</button></div>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const initials = (n) => n.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+async function api(url, opts = {}) {
+  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.errors ? data.errors.join(', ') : data.error || 'Request failed');
+  return data;
+}
+let toastTimer;
+function toast(msg, bad) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = 'show' + (bad ? ' bad' : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.className = ''), 2500);
+}
+
+let view = 'dash', page = 1, q = '', cache = {}, editId = null, delId = null;
+
+// ----- Navigation -----
+function show(v) {
+  view = v;
+  $('#dash').classList.toggle('hide', v !== 'dash');
+  $('#list').classList.toggle('hide', v !== 'list');
+  $('#title').textContent = v === 'dash' ? 'Dashboard' : 'Students';
+  document.querySelectorAll('.nav').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
+  refresh();
+}
+document.querySelectorAll('.nav').forEach((b) => (b.onclick = () => show(b.dataset.view)));
+
+function refresh() {
+  (view === 'dash' ? loadDash() : loadList()).catch((e) => toast(e.message, true));
+}
+
+// ----- Dashboard -----
+async function loadDash() {
+  const d = await api('/api/stats');
+  $('#sTotal').textContent = d.total;
+  $('#sAvg').textContent = d.avgAge;
+  $('#sCourses').textContent = d.courseCount;
+  $('#sNew').textContent = d.newThisWeek;
+  const max = Math.max(1, ...d.courses.map((c) => c.count));
+  $('#bars').innerHTML = d.courses.length
+    ? d.courses.map((c) => `<div class="bar">${esc(c.name)} <span class="muted">(${c.count})</span><div><i style="width:${(c.count / max) * 100}%"></i></div></div>`).join('')
+    : '<p class="muted">No data yet. Add your first student.</p>';
+  $('#recent').innerHTML = d.recent.length
+    ? d.recent.map((s) => `<div class="row"><div class="av">${esc(initials(s.name))}</div><div><b>${esc(s.name)}</b><br><span class="muted">${esc(s.course)}</span></div></div>`).join('')
+    : '<p class="muted">Nothing here yet.</p>';
+}
+
+// ----- Students list + search -----
+async function loadList() {
+  const d = await api(`/api/students?page=${page}&limit=8&q=${encodeURIComponent(q)}`);
+  if (d.page > d.totalPages && d.totalPages > 0) { page = d.totalPages; return loadList(); }
+  cache = {}; d.data.forEach((s) => (cache[s.id] = s));
+  $('#rows').innerHTML = d.data.length
+    ? d.data.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td>${esc(s.email)}</td><td>${esc(s.course)}</td><td>${s.age}</td>
+        <td class="act"><button class="btn ghost sm" data-edit="${s.id}">Edit</button> <button class="btn danger sm" data-del="${s.id}">Delete</button></td></tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No students found</td></tr>';
+  $('#pageInfo').textContent = `Page ${d.page} of ${d.totalPages || 1} · ${d.total} student${d.total === 1 ? '' : 's'}`;
+  $('#prev').disabled = d.page <= 1;
+  $('#next').disabled = d.page >= d.totalPages;
+}
+let timer;
+$('#search').oninput = (e) => { clearTimeout(timer); timer = setTimeout(() => { q = e.target.value.trim(); page = 1; refresh(); }, 300); };
+$('#prev').onclick = () => { page--; refresh(); };
+$('#next').onclick = () => { page++; refresh(); };
+
+$('#rows').onclick = (e) => {
+  const ed = e.target.closest('[data-edit]'), dl = e.target.closest('[data-del]');
+  if (ed) openForm(cache[ed.dataset.edit]);
+  if (dl) { delId = dl.dataset.del; $('#delText').textContent = `This will permanently remove ${cache[delId].name}.`; $('#delDlg').showModal(); }
+};
+
+// ----- Add / Edit -----
+function openForm(s) {
+  editId = s ? s.id : null;
+  $('#dlgTitle').textContent = s ? 'Edit Student' : 'Add Student';
+  $('#fName').value = s ? s.name : ''; $('#fEmail').value = s ? s.email : '';
+  $('#fCourse').value = s ? s.course : ''; $('#fAge').value = s ? s.age : '';
+  $('#formErr').textContent = ''; $('#dlg').showModal();
+}
+$('#addBtn').onclick = () => openForm(null);
+$('#cancel').onclick = () => $('#dlg').close();
+$('#form').onsubmit = async (e) => {
+  e.preventDefault();
+  const body = { name: $('#fName').value, email: $('#fEmail').value, course: $('#fCourse').value, age: Number($('#fAge').value) };
+  $('#save').disabled = true;
+  try {
+    await api(editId ? `/api/students/${editId}` : '/api/students', { method: editId ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    $('#dlg').close(); toast(editId ? 'Student updated' : 'Student added'); refresh();
+  } catch (err) { $('#formErr').textContent = err.message; }
+  $('#save').disabled = false;
+};
+
+// ----- Delete -----
+$('#delCancel').onclick = () => $('#delDlg').close();
+$('#delOk').onclick = async () => {
+  try { await api(`/api/students/${delId}`, { method: 'DELETE' }); toast('Student deleted'); }
+  catch (err) { toast(err.message, true); }
+  $('#delDlg').close(); refresh();
+};
+
+refresh();
+</script>
+</body>
+</html>
